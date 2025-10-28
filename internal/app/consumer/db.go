@@ -1,6 +1,7 @@
 package consumer
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"product_logistics_api/internal/app/repo"
@@ -10,7 +11,7 @@ import (
 )
 
 type Consumer interface {
-	Start()
+	Start(context.Context)
 	Close()
 }
 
@@ -24,8 +25,7 @@ type consumer struct {
 	batchSize uint64
 	timeout   time.Duration
 
-	done chan struct{}
-	wg   *sync.WaitGroup
+	wg *sync.WaitGroup
 }
 
 func NewDbConsumer(
@@ -37,7 +37,6 @@ func NewDbConsumer(
 	processedEvents <-chan model.ProductEventProcessed,
 ) Consumer {
 	wg := &sync.WaitGroup{}
-	done := make(chan struct{})
 	return &consumer{
 		n:               n,
 		batchSize:       batchSize,
@@ -45,12 +44,11 @@ func NewDbConsumer(
 		repo:            repo,
 		events:          events,
 		processedEvents: processedEvents,
-		done:            done,
 		wg:              wg,
 	}
 }
 
-func (c *consumer) Start() {
+func (c *consumer) Start(ctx context.Context) {
 	fmt.Println("NewDbConsumer START")
 	for i := uint64(0); i < c.n; i++ {
 		c.wg.Add(1)
@@ -61,6 +59,9 @@ func (c *consumer) Start() {
 			defer ticker.Stop()
 			for {
 				select {
+				case <-ctx.Done():
+					fmt.Println("Consumer stopped by context:", ctx.Err())
+					return
 				case <-ticker.C:
 					fmt.Println("NewDbConsumer case ticker.C")
 					events, err := c.repo.Lock(c.batchSize)
@@ -71,22 +72,24 @@ func (c *consumer) Start() {
 					}
 					for _, event := range events {
 						fmt.Printf("NewDbConsumer Send event %v to events channel\n", event)
-						c.events <- event
+						select {
+						case <-ctx.Done():
+							return
+						case c.events <- event:
+
+						}
 					}
-				case <-c.done:
-					fmt.Println("NewDbConsumer case c.done.")
-					return
 				case e := <-c.processedEvents:
 					if e.Result == model.Sent {
-						err := c.repo.Remove([]uint64{e.EventID})
-						if err != nil {
+
+						if err := c.repo.Remove([]uint64{e.EventID}); err != nil {
 							// Что делаем если не удалось удалить запись о событии из базы?
 							log.Printf("Repo Remove error: %v", err)
 						}
 
 					} else {
-						err := c.repo.Unlock([]uint64{e.EventID})
-						if err != nil {
+
+						if err := c.repo.Unlock([]uint64{e.EventID}); err != nil {
 							// Что делаем если не вышло вернуть записи статус "К обработке"?
 							log.Printf("Repo Unlock error: %v", err)
 						}
@@ -99,7 +102,5 @@ func (c *consumer) Start() {
 }
 
 func (c *consumer) Close() {
-	fmt.Println("NewDbConsumer Close")
-	close(c.done)
 	c.wg.Wait()
 }

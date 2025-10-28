@@ -1,6 +1,7 @@
 package producer
 
 import (
+	"context"
 	"fmt"
 	"product_logistics_api/internal/app/sender"
 	"product_logistics_api/internal/model"
@@ -10,7 +11,7 @@ import (
 )
 
 type Producer interface {
-	Start()
+	Start(context.Context)
 	Close()
 }
 
@@ -26,11 +27,9 @@ type producer struct {
 
 	workerPool WorkerPool
 
-	wg   *sync.WaitGroup
-	done chan struct{}
+	wg *sync.WaitGroup
 }
 
-// todo for students: add repo
 func NewKafkaProducer(
 	n uint64,
 	sender sender.EventSender,
@@ -40,7 +39,6 @@ func NewKafkaProducer(
 ) Producer {
 
 	wg := &sync.WaitGroup{}
-	done := make(chan struct{})
 
 	return &producer{
 		n:               n,
@@ -48,11 +46,10 @@ func NewKafkaProducer(
 		events:          events,
 		workerPool:      workerPool,
 		wg:              wg,
-		done:            done,
 		processedEvents: processedEvents,
 	}
 }
-func (p *producer) Start() {
+func (p *producer) Start(ctx context.Context) {
 	fmt.Println("producer START")
 	for i := uint64(0); i < p.n; i++ {
 		p.wg.Add(1)
@@ -60,8 +57,11 @@ func (p *producer) Start() {
 			defer p.wg.Done()
 			for {
 				select {
+				case <-ctx.Done():
+					fmt.Println("Producer stopped by context:", ctx.Err())
+					return
 				case event := <-p.events:
-					fmt.Printf("producer. Event recieved %v\n", event)
+					fmt.Printf("Producer. Event recieved %v\n", event)
 
 					if err := p.sender.Send(&event); err != nil {
 						p.workerPool.Submit(func() {
@@ -80,10 +80,6 @@ func (p *producer) Start() {
 							}
 						})
 					}
-				case <-p.done:
-					fmt.Println("producer. p.done")
-
-					return
 				}
 			}
 		}()
@@ -91,7 +87,5 @@ func (p *producer) Start() {
 }
 
 func (p *producer) Close() {
-	fmt.Println("producer Close")
-	close(p.done)
 	p.wg.Wait()
 }

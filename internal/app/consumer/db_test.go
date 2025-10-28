@@ -1,6 +1,7 @@
 package consumer
 
 import (
+	"context"
 	"product_logistics_api/internal/app/repo"
 	"product_logistics_api/internal/model"
 	"testing"
@@ -41,7 +42,9 @@ func TestConsumerWork(t *testing.T) {
 	processedEventsChannel := make(chan model.ProductEventProcessed, processedEventsChannelBuffer)
 	consumer := NewDbConsumer(consumersCount, batchSize, consumeTimeout, repo, eventsChannel, processedEventsChannel)
 
-	consumer.Start()
+	ctx, cancel := context.WithCancel(context.Background())
+	consumer.Start(ctx)
+	cancel()
 	consumer.Close()
 }
 
@@ -58,10 +61,11 @@ func TestOneConsumerLocksCount(t *testing.T) {
 	processedEventsChannel := make(chan model.ProductEventProcessed, processedEventsChannelBuffer)
 	consumer := NewDbConsumer(consumersCount, batchSize, consumeTimeout, repo, eventsChannel, processedEventsChannel)
 
-	consumer.Start()
+	ctx, cancel := context.WithCancel(context.Background())
+	consumer.Start(ctx)
 
 	time.Sleep(120 * time.Millisecond)
-
+	cancel()
 	consumer.Close()
 	expectedLockCalls := uint64(2)
 	if repo.CountOfLocksCall() != expectedLockCalls {
@@ -82,10 +86,12 @@ func TestMultipleConsumersLocksCount(t *testing.T) {
 	processedEventsChannelBuffer := uint64(1)
 	processedEventsChannel := make(chan model.ProductEventProcessed, processedEventsChannelBuffer)
 	consumer := NewDbConsumer(consumersCount, batchSize, consumeTimeout, repo, eventsChannel, processedEventsChannel)
-	consumer.Start()
+	ctx, cancel := context.WithCancel(context.Background())
+	consumer.Start(ctx)
 
 	time.Sleep(60 * time.Millisecond)
 
+	cancel()
 	consumer.Close()
 	expectedLockCalls := uint64(5)
 	if repo.CountOfLocksCall() != expectedLockCalls {
@@ -110,8 +116,11 @@ func TestWriteInEventsChannel(t *testing.T) {
 	new_event := createEvent(1, model.Created, model.Deffered, prod)
 	repo.Add(*new_event)
 
-	consumer.Start()
+	ctx, cancel := context.WithCancel(context.Background())
+	consumer.Start(ctx)
+
 	defer consumer.Close()
+	defer cancel()
 	select {
 	case got := <-eventsChannel:
 		if got.ID != new_event.ID {
@@ -136,9 +145,11 @@ func TestLocksStoppedAfterConsumerStopped(t *testing.T) {
 	processedEventsChannel := make(chan model.ProductEventProcessed, processedEventsChannelBuffer)
 	consumer := NewDbConsumer(consumersCount, batchSize, consumeTimeout, repo, eventsChannel, processedEventsChannel)
 
-	consumer.Start()
+	ctx, cancel := context.WithCancel(context.Background())
+	consumer.Start(ctx)
 
 	time.Sleep(60 * time.Millisecond)
+	cancel()
 	consumer.Close()
 	time.Sleep(60 * time.Millisecond)
 
@@ -164,8 +175,11 @@ func TestMultipleConsumersSendAllEvents(t *testing.T) {
 	processedEventsChannelBuffer := uint64(1)
 	processedEventsChannel := make(chan model.ProductEventProcessed, processedEventsChannelBuffer)
 	consumer := NewDbConsumer(consumersCount, batchSize, consumeTimeout, repo, eventsChannel, processedEventsChannel)
-	consumer.Start()
+	ctx, cancel := context.WithCancel(context.Background())
+	consumer.Start(ctx)
+
 	defer consumer.Close()
+	defer cancel()
 	received := map[uint64]bool{}
 	timeout := time.After(200 * time.Millisecond)
 
@@ -194,17 +208,20 @@ func TestReturneProcessedEventInEventsChannel(t *testing.T) {
 	consumeTimeout := time.Millisecond * 50
 	eventsChannelBuffer := uint64(5)
 	eventsChannel := make(chan model.ProductEvent, eventsChannelBuffer)
-	processedEventsChannelBuffer := uint64(1)
+	processedEventsChannelBuffer := uint64(5)
 	processedEventsChannel := make(chan model.ProductEventProcessed, processedEventsChannelBuffer)
 
-	processedEventsChannel <- model.ProductEventProcessed{ID: uuid.New(), EventID: 1, Result: model.Returned}
+	ctx, cancel := context.WithCancel(context.Background())
+	processedEventsChannel <- model.ProductEventProcessed{ID: uuid.New(), EventID: uint64(1), Result: model.Returned}
 
 	consumer := NewDbConsumer(consumersCount, batchSize, consumeTimeout, repo, eventsChannel, processedEventsChannel)
-	consumer.Start()
+	consumer.Start(ctx)
 	defer consumer.Close()
+	defer cancel()
 	time.Sleep(time.Millisecond * 60)
 
 	if len(eventsChannel) != 1 {
+		time.Sleep(time.Second * 1)
 		t.Fatalf("Events count. Expected: 1, Found: %d", len(eventsChannel))
 	}
 

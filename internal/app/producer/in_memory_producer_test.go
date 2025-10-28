@@ -1,6 +1,7 @@
 package producer
 
 import (
+	"context"
 	"product_logistics_api/internal/app/sender"
 	"product_logistics_api/internal/app/workerpool"
 	"product_logistics_api/internal/model"
@@ -38,8 +39,10 @@ func TestStartClose(t *testing.T) {
 	processedEventsChannel := make(chan model.ProductEventProcessed, processedEventsChannelBuffer)
 	producer := NewKafkaProducer(producerWorkersCount, sender, eventsChannel, processedEventsChannel, workerPool)
 
-	producer.Start()
-	defer producer.Close()
+	ctx, cancel := context.WithCancel(context.Background())
+	producer.Start(ctx)
+	cancel()
+	producer.Close()
 }
 
 func TestCorrectWork(t *testing.T) {
@@ -56,9 +59,10 @@ func TestCorrectWork(t *testing.T) {
 	new_event := createEvent(1, model.Created, model.Deffered, prod)
 	eventsChannel <- *new_event
 
-	producer.Start()
-	defer producer.Close()
-
+	ctx, cancel := context.WithCancel(context.Background())
+	producer.Start(ctx)
+	cancel()
+	producer.Close()
 	time.Sleep(time.Millisecond * 100)
 
 	if expectedEventsCount := 0; len(eventsChannel) != expectedEventsCount {

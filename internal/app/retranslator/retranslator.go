@@ -1,6 +1,7 @@
 package retranslator
 
 import (
+	"context"
 	"product_logistics_api/internal/app/consumer"
 	"product_logistics_api/internal/app/producer"
 	"product_logistics_api/internal/app/repo"
@@ -12,7 +13,7 @@ import (
 )
 
 type Retranslator interface {
-	Start()
+	Start(context.Context)
 	Close()
 }
 
@@ -64,9 +65,9 @@ func NewRetranslator(cfg Config) Retranslator {
 	}
 }
 
-func (r *retranslator) Start() {
-	r.producer.Start()
-	r.consumer.Start()
+func (r *retranslator) Start(ctx context.Context) {
+	r.producer.Start(ctx)
+	r.consumer.Start(ctx)
 }
 
 func (r *retranslator) Close() {

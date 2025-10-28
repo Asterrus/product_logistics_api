@@ -1,6 +1,7 @@
 package retranslator
 
 import (
+	"context"
 	"product_logistics_api/internal/app/repo"
 	"product_logistics_api/internal/app/sender"
 	"product_logistics_api/internal/model"
@@ -43,8 +44,10 @@ func TestStart(t *testing.T) {
 		Sender:                     sender,
 	}
 
+	ctx, cancel := context.WithCancel(context.Background())
 	retranslator := NewRetranslator(cfg)
-	retranslator.Start()
+	retranslator.Start(ctx)
+	cancel()
 	retranslator.Close()
 }
 
@@ -63,11 +66,12 @@ func TestCorrectWork(t *testing.T) {
 		Repo:                       repo,
 		Sender:                     sender,
 	}
-
+	ctx, cancel := context.WithCancel(context.Background())
 	retranslator := NewRetranslator(cfg)
-	retranslator.Start()
-	defer retranslator.Close()
+	retranslator.Start(ctx)
 
+	defer retranslator.Close()
+	defer cancel()
 	time.Sleep(time.Millisecond * 25)
 
 	prod := createProduct(1)

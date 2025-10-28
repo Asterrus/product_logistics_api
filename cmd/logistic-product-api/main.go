@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"os"
 	"os/signal"
 	"product_logistics_api/internal/app/repo"
@@ -14,6 +15,7 @@ func main() {
 	sigs := make(chan os.Signal, 1)
 	repo := repo.NewInMemoryProductEventRepo()
 	sender := sender.NewProductEventSender()
+	context, cancel := context.WithCancel(context.Background())
 	cfg := retranslator.Config{
 		EventsChannelSize:          512,
 		ProcessedEventsChannelSize: 512,
@@ -27,9 +29,11 @@ func main() {
 	}
 
 	retranslator := retranslator.NewRetranslator(cfg)
-	retranslator.Start()
+	retranslator.Start(context)
 
 	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
 
 	<-sigs
+	cancel()
+	retranslator.Close()
 }
