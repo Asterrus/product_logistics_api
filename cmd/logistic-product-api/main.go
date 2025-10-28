@@ -1,60 +1,35 @@
 package main
 
 import (
-	"fmt"
-	"sync"
-
-	"github.com/gammazero/workerpool"
+	"os"
+	"os/signal"
+	"product_logistics_api/internal/app/repo"
+	"product_logistics_api/internal/app/retranslator"
+	"product_logistics_api/internal/app/sender"
+	"syscall"
+	"time"
 )
 
-func test() {
-	wp := workerpool.New(2)
-	requests := []string{"alpha", "beta", "gamma", "delta", "epsilon"}
-
-	for _, r := range requests {
-		r := r
-		wp.Submit(func() {
-			fmt.Println("Handling request:", r)
-		})
-	}
-
-	wp.StopWait()
-}
-func test2() {
-	type WorkerPool struct {
-		closed bool
-		mu     sync.Mutex
-
-		tasks     chan func()
-		wgWorkers sync.WaitGroup
-		doneCh    chan struct{}
-	}
-	wp := WorkerPool{}
-	fmt.Println(wp)
-	fmt.Printf("%v\n", wp.closed)
-	fmt.Printf("%v\n", wp.mu)
-	fmt.Printf("%v\n", wp.tasks)
-	fmt.Printf("%v\n", wp.doneCh)
-	fmt.Printf("%v\n", wp.wgWorkers)
-}
 func main() {
+	sigs := make(chan os.Signal, 1)
+	repo := repo.NewInMemoryProductEventRepo()
+	sender := sender.NewProductEventSender()
+	cfg := retranslator.Config{
+		EventsChannelSize:          512,
+		ProcessedEventsChannelSize: 512,
+		ConsumerCount:              2,
+		ConsumeSize:                10,
+		ProducerCount:              28,
+		WorkerCount:                2,
+		ConsumeTimeout:             1 * time.Second,
+		Repo:                       repo,
+		Sender:                     sender,
+	}
 
-	// sigs := make(chan os.Signal, 1)
+	retranslator := retranslator.NewRetranslator(cfg)
+	retranslator.Start()
 
-	// cfg := retranslator.Config{
-	// 	ChannelSize:    512,
-	// 	ConsumerCount:  2,
-	// 	ConsumeSize:    10,
-	// 	ProducerCount:  28,
-	// 	WorkerCount:    2,
-	// 	ConsumeTimeout: 2,
-	// }
+	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
 
-	// retranslator := retranslator.NewRetranslator(cfg)
-	// retranslator.Start()
-
-	// signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
-
-	// <-sigs
-	test2()
+	<-sigs
 }
