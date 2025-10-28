@@ -46,15 +46,18 @@ func (wp *WorkerPool) startWorkers(workersNum uint64, workersInitWG *sync.WaitGr
 			defer wg.Done()
 			workersInitWG.Done()
 			for task := range wp.tasks {
-				log.Printf("WORKER %v GET TASK", i)
-				defer func() {
-					// защита: если task вызовет паник — всё равно считать задачу выполненной
-					if r := recover(); r != nil {
-						log.Printf("Поймали панику при выполнении таски!: %v", r)
-						// можно логировать, если нужно
-					}
-				}()
-				task()
+
+				func(i int) {
+					log.Printf("WORKER %v GET TASK", i)
+					defer func() {
+						// защита: если task вызовет паник — всё равно считать задачу выполненной
+						if r := recover(); r != nil {
+							log.Printf("Поймали панику при выполнении таски!: %v", r)
+							// можно логировать, если нужно
+						}
+					}()
+					task()
+				}(i)
 			}
 		}()
 	}

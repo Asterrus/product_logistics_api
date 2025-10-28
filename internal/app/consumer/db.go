@@ -58,6 +58,7 @@ func (c *consumer) Start() {
 		go func() {
 			defer c.wg.Done()
 			ticker := time.NewTicker(c.timeout)
+			defer ticker.Stop()
 			for {
 				select {
 				case <-ticker.C:
