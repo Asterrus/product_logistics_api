@@ -5,7 +5,6 @@ import (
 	"product_logistics_api/internal/app/sender"
 	"product_logistics_api/internal/model"
 	"sync"
-	"time"
 
 	"github.com/google/uuid"
 )
@@ -19,8 +18,7 @@ type WorkerPool interface {
 	Submit(task func())
 }
 type producer struct {
-	n       uint64
-	timeout time.Duration
+	n uint64
 
 	sender          sender.EventSender
 	events          <-chan model.ProductEvent
