@@ -23,7 +23,7 @@ var (
 
 func NewWorkerPool(workersNum uint64, tasksBufferSize uint64) (*WorkerPool, error) {
 	if workersNum <= 0 {
-		return nil, errors.New("Incorrect workers num")
+		return nil, errors.New("incorrect workers num")
 	}
 	wp := &WorkerPool{
 		tasks:  make(chan func(), tasksBufferSize),

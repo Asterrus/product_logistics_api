@@ -94,6 +94,23 @@ func TestLockGreaterThanExists(t *testing.T) {
 	}
 }
 
+func TestLockExactCount(t *testing.T) {
+	t.Parallel()
+	repo := NewInMemoryProductEventRepo()
+	prod := createProduct(1)
+	new_event := createEvent(1, model.Created, model.Deferred, prod)
+	repo.Add(*new_event)
+	new_event2 := createEvent(2, model.Created, model.Deferred, prod)
+	repo.Add(*new_event2)
+
+	lockedEvents, _ := repo.Lock(1)
+	expected := 1
+
+	if len(lockedEvents) != expected {
+		t.Errorf("Locked events count. Expected: %d, Found: %d", expected, len(lockedEvents))
+	}
+}
+
 func TestUnlock(t *testing.T) {
 	t.Parallel()
 	repo := NewInMemoryProductEventRepo()

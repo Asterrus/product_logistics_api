@@ -44,11 +44,15 @@ func (r *InMemoryProductEventRepo) Lock(n uint64) ([]model.ProductEvent, error) 
 	defer r.mu.Unlock()
 	res := []model.ProductEvent{}
 
+	found := 0
 	for _, e := range r.events {
 		if e.Status == model.Deferred {
 			e.Status = model.InProgress
 			res = append(res, *e)
-
+			found++
+		}
+		if found == int(n) {
+			break
 		}
 	}
 	r.lockCalls++
