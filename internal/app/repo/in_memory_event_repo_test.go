@@ -29,7 +29,7 @@ func TestAdd(t *testing.T) {
 
 	repo := NewInMemoryProductEventRepo()
 	prod := createProduct(1)
-	new_event := createEvent(1, model.Created, model.Deffered, prod)
+	new_event := createEvent(1, model.Created, model.Deferred, prod)
 	repo.Add(*new_event)
 
 	expected := 1
@@ -47,7 +47,7 @@ func TestLock(t *testing.T) {
 	t.Parallel()
 	repo := NewInMemoryProductEventRepo()
 	prod := createProduct(1)
-	new_event := createEvent(1, model.Created, model.Deffered, prod)
+	new_event := createEvent(1, model.Created, model.Deferred, prod)
 	repo.Add(*new_event)
 
 	repo.Lock(1)
@@ -64,7 +64,7 @@ func TestLockZero(t *testing.T) {
 	t.Parallel()
 	repo := NewInMemoryProductEventRepo()
 	prod := createProduct(1)
-	new_event := createEvent(1, model.Created, model.Deffered, prod)
+	new_event := createEvent(1, model.Created, model.Deferred, prod)
 	repo.Add(*new_event)
 
 	lockedEvents, err := repo.Lock(0)
@@ -83,7 +83,7 @@ func TestLockGreaterThanExists(t *testing.T) {
 	t.Parallel()
 	repo := NewInMemoryProductEventRepo()
 	prod := createProduct(1)
-	new_event := createEvent(1, model.Created, model.Deffered, prod)
+	new_event := createEvent(1, model.Created, model.Deferred, prod)
 	repo.Add(*new_event)
 
 	lockedEvents, _ := repo.Lock(2)
@@ -98,7 +98,7 @@ func TestUnlock(t *testing.T) {
 	t.Parallel()
 	repo := NewInMemoryProductEventRepo()
 	prod := createProduct(1)
-	new_event := createEvent(1, model.Created, model.Deffered, prod)
+	new_event := createEvent(1, model.Created, model.Deferred, prod)
 	repo.Add(*new_event)
 
 	lockedEvents, _ := repo.Lock(1)
@@ -109,7 +109,7 @@ func TestUnlock(t *testing.T) {
 	}
 
 	unlockedEvent, _ := repo.Get(new_event.ID)
-	expectedStatus := model.Deffered
+	expectedStatus := model.Deferred
 
 	if unlockedEvent.Status != expectedStatus {
 		t.Errorf("Event status. Expected: %d, Found: %d", expectedStatus, unlockedEvent.Status)
@@ -121,7 +121,7 @@ func TestDelete(t *testing.T) {
 	t.Parallel()
 	repo := NewInMemoryProductEventRepo()
 	prod := createProduct(1)
-	new_event := createEvent(1, model.Created, model.Deffered, prod)
+	new_event := createEvent(1, model.Created, model.Deferred, prod)
 	repo.Add(*new_event)
 
 	err := repo.Remove([]uint64{1})

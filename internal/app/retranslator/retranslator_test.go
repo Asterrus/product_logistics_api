@@ -75,7 +75,7 @@ func TestCorrectWork(t *testing.T) {
 	time.Sleep(time.Millisecond * 25)
 
 	prod := createProduct(1)
-	new_event := createEvent(1, model.Created, model.Deffered, prod)
+	new_event := createEvent(1, model.Created, model.Deferred, prod)
 	repo.Add(*new_event)
 
 	time.Sleep(time.Millisecond * 150)

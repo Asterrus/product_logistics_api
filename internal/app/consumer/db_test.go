@@ -113,7 +113,7 @@ func TestWriteInEventsChannel(t *testing.T) {
 	consumer := NewDbConsumer(consumersCount, batchSize, consumeTimeout, repo, eventsChannel, processedEventsChannel)
 
 	prod := createProduct(1)
-	new_event := createEvent(1, model.Created, model.Deffered, prod)
+	new_event := createEvent(1, model.Created, model.Deferred, prod)
 	repo.Add(*new_event)
 
 	ctx, cancel := context.WithCancel(context.Background())
@@ -165,7 +165,7 @@ func TestMultipleConsumersSendAllEvents(t *testing.T) {
 
 	repo := repo.NewInMemoryProductEventRepo()
 	for i := range 5 {
-		repo.Add(*createEvent(uint64(i), model.Created, model.Deffered, createProduct(uint64(i))))
+		repo.Add(*createEvent(uint64(i), model.Created, model.Deferred, createProduct(uint64(i))))
 	}
 	consumersCount := uint64(5)
 	batchSize := uint64(1)

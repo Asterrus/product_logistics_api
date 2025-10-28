@@ -45,7 +45,7 @@ func (r *InMemoryProductEventRepo) Lock(n uint64) ([]model.ProductEvent, error) 
 	res := []model.ProductEvent{}
 
 	for _, e := range r.events {
-		if e.Status == model.Deffered {
+		if e.Status == model.Deferred {
 			e.Status = model.InProgress
 			res = append(res, *e)
 
@@ -61,7 +61,7 @@ func (r *InMemoryProductEventRepo) Unlock(eventIDs []uint64) error {
 	for _, id := range eventIDs {
 		value, ok := r.events[id]
 		if ok {
-			value.Status = model.Deffered
+			value.Status = model.Deferred
 		}
 	}
 	return nil

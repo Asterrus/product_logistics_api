@@ -26,7 +26,7 @@ func createEvent(
 }
 func TestSend(t *testing.T) {
 	sender := NewProductEventSender()
-	sender.Send(createEvent(1, model.Created, model.Deffered, createProduct(1)))
+	sender.Send(createEvent(1, model.Created, model.Deferred, createProduct(1)))
 	expected := 1
 	if sender.SendsCount() != 1 {
 		t.Errorf("Sends count must be %v", expected)

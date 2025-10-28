@@ -19,7 +19,7 @@ const (
 )
 
 const (
-	Deffered EventStatus = iota
+	Deferred EventStatus = iota
 	InProgress
 	Processed // Сейчас не используется, так как удаляется событие при успешной отправке, но возможно не стоит удалять?
 )

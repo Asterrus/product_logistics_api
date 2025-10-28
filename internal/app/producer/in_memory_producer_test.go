@@ -56,7 +56,7 @@ func TestCorrectWork(t *testing.T) {
 	producer := NewKafkaProducer(producerWorkersCount, sender, eventsChannel, processedEventsChannel, workerPool)
 
 	prod := createProduct(1)
-	new_event := createEvent(1, model.Created, model.Deffered, prod)
+	new_event := createEvent(1, model.Created, model.Deferred, prod)
 	eventsChannel <- *new_event
 
 	ctx, cancel := context.WithCancel(context.Background())
