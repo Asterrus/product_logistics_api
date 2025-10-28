@@ -24,7 +24,7 @@ type consumer struct {
 	batchSize uint64
 	timeout   time.Duration
 
-	done chan bool
+	done chan struct{}
 	wg   *sync.WaitGroup
 }
 
@@ -37,7 +37,7 @@ func NewDbConsumer(
 	processedEvents <-chan model.ProductEventProcessed,
 ) Consumer {
 	wg := &sync.WaitGroup{}
-	done := make(chan bool)
+	done := make(chan struct{})
 	return &consumer{
 		n:               n,
 		batchSize:       batchSize,
