@@ -3,8 +3,8 @@ package consumer
 import (
 	"context"
 	"log"
-	"product_logistics_api/internal/app/repo"
 	"product_logistics_api/internal/model"
+	"product_logistics_api/internal/ports"
 	"sync"
 	"time"
 )
@@ -19,7 +19,7 @@ type consumer struct {
 	events          chan<- model.ProductEvent
 	processedEvents <-chan model.ProductEventProcessed
 
-	repo repo.EventRepo
+	repo ports.EventRepo
 
 	batchSize uint64
 	timeout   time.Duration
@@ -31,7 +31,7 @@ func NewDbConsumer(
 	n uint64,
 	batchSize uint64,
 	consumeTimeout time.Duration,
-	repo repo.EventRepo,
+	repo ports.EventRepo,
 	events chan<- model.ProductEvent,
 	processedEvents <-chan model.ProductEventProcessed,
 ) Consumer {

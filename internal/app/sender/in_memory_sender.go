@@ -3,6 +3,7 @@ package sender
 import (
 	"log"
 	"product_logistics_api/internal/model"
+	"product_logistics_api/internal/ports"
 )
 
 type InMemoryProductEventSender struct {
@@ -10,7 +11,7 @@ type InMemoryProductEventSender struct {
 }
 
 type TestEventSender interface {
-	EventSender
+	ports.EventSender
 	SendsCount() uint64
 }
 

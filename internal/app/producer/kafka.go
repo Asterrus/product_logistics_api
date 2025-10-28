@@ -3,8 +3,8 @@ package producer
 import (
 	"context"
 	"log"
-	"product_logistics_api/internal/app/sender"
 	"product_logistics_api/internal/model"
+	"product_logistics_api/internal/ports"
 	"sync"
 
 	"github.com/google/uuid"
@@ -15,27 +15,24 @@ type Producer interface {
 	Close()
 }
 
-type WorkerPool interface {
-	Submit(task func())
-}
 type producer struct {
 	n uint64
 
-	sender          sender.EventSender
+	sender          ports.EventSender
 	events          <-chan model.ProductEvent
 	processedEvents chan<- model.ProductEventProcessed
 
-	workerPool WorkerPool
+	workerPool ports.TaskSubmitter
 
 	wg *sync.WaitGroup
 }
 
 func NewKafkaProducer(
 	n uint64,
-	sender sender.EventSender,
+	sender ports.EventSender,
 	events <-chan model.ProductEvent,
 	processedEvents chan<- model.ProductEventProcessed,
-	workerPool WorkerPool,
+	workerPool ports.TaskSubmitter,
 ) Producer {
 
 	wg := &sync.WaitGroup{}

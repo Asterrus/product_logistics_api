@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"product_logistics_api/internal/model"
+	"product_logistics_api/internal/ports"
 	"sync"
 )
 
@@ -19,7 +20,7 @@ type InMemoryProductEventRepo struct {
 }
 
 type TestEventRepo interface {
-	EventRepo
+	ports.EventRepo
 	// Для тестов
 	Count() uint64
 

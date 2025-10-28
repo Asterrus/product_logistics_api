@@ -4,9 +4,8 @@ import (
 	"context"
 	"product_logistics_api/internal/app/consumer"
 	"product_logistics_api/internal/app/producer"
-	"product_logistics_api/internal/app/repo"
-	"product_logistics_api/internal/app/sender"
 	"product_logistics_api/internal/model"
+	"product_logistics_api/internal/ports"
 	"time"
 
 	"github.com/gammazero/workerpool"
@@ -28,8 +27,8 @@ type Config struct {
 	ProducerCount uint64
 	WorkerCount   int
 
-	Repo   repo.EventRepo
-	Sender sender.EventSender
+	Repo   ports.EventRepo
+	Sender ports.EventSender
 }
 
 type retranslator struct {
