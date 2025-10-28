@@ -16,13 +16,3 @@ type EventRepo interface {
 	// Удалить обработанное событие?
 	Remove(eventIDs []uint64) error
 }
-
-type TestEventRepo interface {
-	EventRepo
-	// Для тестов
-	Count() uint64
-
-	Get(eventID uint64) (model.ProductEvent, error)
-
-	CountOfLocksCall() uint64
-}

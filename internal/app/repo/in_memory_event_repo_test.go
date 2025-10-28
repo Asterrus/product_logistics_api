@@ -108,7 +108,7 @@ func TestUnlock(t *testing.T) {
 		t.Error(err.Error())
 	}
 
-	unlockedEvent, err := repo.Get(new_event.ID)
+	unlockedEvent, _ := repo.Get(new_event.ID)
 	expectedStatus := model.Deffered
 
 	if unlockedEvent.Status != expectedStatus {

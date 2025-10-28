@@ -2,6 +2,10 @@ package workerpool
 
 import "fmt"
 
+type FakeWorkerPoolInterface interface {
+	Submit(func())
+	GetCallCount() uint64
+}
 type FakeWorkerPool struct {
 	submitCallCount uint64
 }

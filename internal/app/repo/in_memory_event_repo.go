@@ -18,6 +18,16 @@ type InMemoryProductEventRepo struct {
 	lockCalls uint64
 }
 
+type TestEventRepo interface {
+	EventRepo
+	// Для тестов
+	Count() uint64
+
+	Get(eventID uint64) (model.ProductEvent, error)
+
+	CountOfLocksCall() uint64
+}
+
 func NewInMemoryProductEventRepo() TestEventRepo {
 	return &InMemoryProductEventRepo{
 		events: map[uint64]*model.ProductEvent{},
@@ -83,7 +93,7 @@ func (r *InMemoryProductEventRepo) Get(eventID uint64) (model.ProductEvent, erro
 	defer r.mu.Unlock()
 	event, ok := r.events[eventID]
 	if !ok {
-		return model.ProductEvent{}, fmt.Errorf("Event with ID %d not found", eventID)
+		return model.ProductEvent{}, fmt.Errorf("event with ID %d not found", eventID)
 	}
 	return *event, nil
 }

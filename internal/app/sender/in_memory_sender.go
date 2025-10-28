@@ -9,6 +9,11 @@ type InMemoryProductEventSender struct {
 	sendsCount uint64
 }
 
+type TestEventSender interface {
+	EventSender
+	SendsCount() uint64
+}
+
 func NewProductEventSender() TestEventSender {
 	return &InMemoryProductEventSender{
 		sendsCount: uint64(0),
