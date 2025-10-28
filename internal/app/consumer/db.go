@@ -66,8 +66,8 @@ func (c *consumer) Start() {
 					events, err := c.repo.Lock(c.batchSize)
 					fmt.Printf("NewDbConsumer events: %v, err: %v\n", events, err)
 					if err != nil {
-						panic(err)
-						// continue
+						log.Printf("Repo Lock error: %v", err)
+						continue
 					}
 					for _, event := range events {
 						fmt.Printf("NewDbConsumer Send event %v to events channel\n", event)
