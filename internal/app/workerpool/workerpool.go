@@ -3,6 +3,7 @@ package workerpool
 import (
 	"errors"
 	"log"
+	"product_logistics_api/internal/ports"
 	"sync"
 )
 
@@ -21,7 +22,7 @@ var (
 	ErrQueueFull   = errors.New("workerpool: queue full")
 )
 
-func NewWorkerPool(workersNum uint64, tasksBufferSize uint64) (*WorkerPool, error) {
+func NewWorkerPool(workersNum uint64, tasksBufferSize uint64) (ports.TaskSubmitter, error) {
 	if workersNum <= 0 {
 		return nil, errors.New("incorrect workers num")
 	}
@@ -67,7 +68,7 @@ func (wp *WorkerPool) startWorkers(workersNum uint64, workersInitWG *sync.WaitGr
 
 func (wp *WorkerPool) Submit(task func()) error {
 	if task == nil {
-		return errors.New("Task is incorrect")
+		return errors.New("task is incorrect")
 	}
 
 	wp.mu.Lock()
@@ -90,7 +91,7 @@ func (wp *WorkerPool) Submit(task func()) error {
 
 func (wp *WorkerPool) TrySubmit(task func()) error {
 	if task == nil {
-		return errors.New("Task is incorrect")
+		return errors.New("task is incorrect")
 	}
 
 	wp.mu.Lock()

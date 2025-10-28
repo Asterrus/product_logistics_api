@@ -17,5 +17,8 @@ type EventSender interface {
 
 // Минимальный контракт пула задач
 type TaskSubmitter interface {
-	Submit(func())
+	Submit(func()) error
+	Stop() error
+	StopWait() error
+	TrySubmit(func()) error
 }

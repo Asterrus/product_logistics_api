@@ -4,11 +4,10 @@ import (
 	"context"
 	"product_logistics_api/internal/app/consumer"
 	"product_logistics_api/internal/app/producer"
+	"product_logistics_api/internal/app/workerpool"
 	"product_logistics_api/internal/model"
 	"product_logistics_api/internal/ports"
 	"time"
-
-	"github.com/gammazero/workerpool"
 )
 
 type Retranslator interface {
@@ -24,8 +23,9 @@ type Config struct {
 	ConsumeSize    uint64
 	ConsumeTimeout time.Duration
 
-	ProducerCount uint64
-	WorkerCount   int
+	ProducerCount        uint64
+	WorkerCount          int
+	WorkerPoolBufferSize uint64
 
 	Repo   ports.EventRepo
 	Sender ports.EventSender
@@ -35,12 +35,12 @@ type retranslator struct {
 	events     chan model.ProductEvent
 	consumer   consumer.Consumer
 	producer   producer.Producer
-	workerPool *workerpool.WorkerPool
+	workerPool ports.TaskSubmitter
 }
 
 func NewRetranslator(cfg Config) Retranslator {
 	events := make(chan model.ProductEvent, cfg.EventsChannelSize)
-	workerPool := workerpool.New(cfg.WorkerCount)
+	workerPool, _ := workerpool.NewWorkerPool(uint64(cfg.WorkerCount), uint64(cfg.WorkerPoolBufferSize))
 	processedEventsChannel := make(chan model.ProductEventProcessed, cfg.ProcessedEventsChannelSize)
 	consumer := consumer.NewDbConsumer(
 		cfg.ConsumerCount,

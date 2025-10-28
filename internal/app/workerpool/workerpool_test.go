@@ -2,6 +2,7 @@ package workerpool
 
 import (
 	"errors"
+	"product_logistics_api/internal/ports"
 	"sync"
 	"sync/atomic"
 	"testing"
@@ -14,7 +15,7 @@ type WorkerPoolInterface interface {
 	StopWait() error
 }
 
-func GetMyPoolRealisation(workersNum uint64, tasksBufferSize uint64) (*WorkerPool, error) {
+func GetMyPoolRealisation(workersNum uint64, tasksBufferSize uint64) (ports.TaskSubmitter, error) {
 	return NewWorkerPool(workersNum, tasksBufferSize)
 }
 

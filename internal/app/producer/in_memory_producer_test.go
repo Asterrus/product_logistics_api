@@ -61,8 +61,10 @@ func TestCorrectWork(t *testing.T) {
 
 	ctx, cancel := context.WithCancel(context.Background())
 	producer.Start(ctx)
-	cancel()
-	producer.Close()
+
+	defer producer.Close()
+	defer cancel()
+
 	time.Sleep(time.Millisecond * 100)
 
 	if expectedEventsCount := 0; len(eventsChannel) != expectedEventsCount {
