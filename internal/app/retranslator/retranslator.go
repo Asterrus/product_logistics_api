@@ -17,7 +17,8 @@ type Retranslator interface {
 }
 
 type Config struct {
-	ChannelSize uint64
+	EventsChannelSize          uint64
+	ProcessedEventsChannelSize uint64
 
 	ConsumerCount  uint64
 	ConsumeSize    uint64
@@ -38,19 +39,21 @@ type retranslator struct {
 }
 
 func NewRetranslator(cfg Config) Retranslator {
-	events := make(chan model.ProductEvent, cfg.ChannelSize)
+	events := make(chan model.ProductEvent, cfg.EventsChannelSize)
 	workerPool := workerpool.New(cfg.WorkerCount)
-
+	processedEventsChannel := make(chan model.ProductEventProcessed, cfg.ProcessedEventsChannelSize)
 	consumer := consumer.NewDbConsumer(
 		cfg.ConsumerCount,
 		cfg.ConsumeSize,
 		cfg.ConsumeTimeout,
 		cfg.Repo,
-		events)
+		events,
+		processedEventsChannel)
 	producer := producer.NewKafkaProducer(
 		cfg.ProducerCount,
 		cfg.Sender,
 		events,
+		processedEventsChannel,
 		workerPool)
 
 	return &retranslator{

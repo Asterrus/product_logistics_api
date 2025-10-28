@@ -1,8 +1,6 @@
 package repo
 
 import (
-	"log"
-	eventstorage "product_logistics_api/internal/app/event_storage"
 	"product_logistics_api/internal/model"
 )
 
@@ -19,29 +17,12 @@ type EventRepo interface {
 	Remove(eventIDs []uint64) error
 }
 
-type ProductEventRepo struct {
-	storage eventstorage.EventStorage
-}
+type TestEventRepo interface {
+	EventRepo
+	// Для тестов
+	Count() uint64
 
-func (r *ProductEventRepo) Lock(n uint64) ([]model.ProductEvent, error) {
-	log.Printf("ProductEventRepo Lock: %v", n)
-	return r.storage.Lock(n)
-}
-func (r *ProductEventRepo) Unlock(eventIDs []uint64) error {
-	log.Printf("ProductEventRepo Unlock eventIDs: %v", eventIDs)
-	return nil
-}
-func (r *ProductEventRepo) Add(event model.ProductEvent) error {
-	log.Printf("ProductEventRepo Add event: %v", event)
-	return r.storage.Add(event)
-}
-func (r *ProductEventRepo) Remove(eventIDs []uint64) error {
-	log.Printf("ProductEventRepo Remove eventIDs: %v", eventIDs)
-	return nil
-}
+	Get(eventID uint64) (model.ProductEvent, error)
 
-func NewProductEventRepo() EventRepo {
-	return &ProductEventRepo{
-		storage: eventstorage.NewInMemoryEventStorage(),
-	}
+	CountOfLocksCall() uint64
 }

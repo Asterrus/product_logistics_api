@@ -1,5 +1,7 @@
 package model
 
+import "github.com/google/uuid"
+
 type Product struct {
 	ID uint64
 }
@@ -7,6 +9,8 @@ type Product struct {
 type EventType uint8
 
 type EventStatus uint8
+
+type EventProcessedResult uint8
 
 const (
 	Created EventType = iota
@@ -17,7 +21,12 @@ const (
 const (
 	Deffered EventStatus = iota
 	InProgress
-	Processed
+	Processed // Сейчас не используется, так как удаляется событие при успешной отправке, но возможно не стоит удалять?
+)
+
+const (
+	Sent EventProcessedResult = iota
+	Returned
 )
 
 type ProductEvent struct {
@@ -25,4 +34,10 @@ type ProductEvent struct {
 	Type   EventType
 	Status EventStatus
 	Entity *Product
+}
+
+type ProductEventProcessed struct {
+	ID      uuid.UUID
+	EventID uint64
+	Result  EventProcessedResult
 }

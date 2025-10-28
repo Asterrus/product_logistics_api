@@ -2,6 +2,7 @@ package consumer
 
 import (
 	"fmt"
+	"log"
 	"product_logistics_api/internal/app/repo"
 	"product_logistics_api/internal/model"
 	"sync"
@@ -14,8 +15,9 @@ type Consumer interface {
 }
 
 type consumer struct {
-	n      uint64
-	events chan<- model.ProductEvent
+	n               uint64
+	events          chan<- model.ProductEvent
+	processedEvents <-chan model.ProductEventProcessed
 
 	repo repo.EventRepo
 
@@ -32,17 +34,19 @@ func NewDbConsumer(
 	consumeTimeout time.Duration,
 	repo repo.EventRepo,
 	events chan<- model.ProductEvent,
+	processedEvents <-chan model.ProductEventProcessed,
 ) Consumer {
 	wg := &sync.WaitGroup{}
 	done := make(chan bool)
 	return &consumer{
-		n:         n,
-		batchSize: batchSize,
-		timeout:   consumeTimeout,
-		repo:      repo,
-		events:    events,
-		done:      done,
-		wg:        wg,
+		n:               n,
+		batchSize:       batchSize,
+		timeout:         consumeTimeout,
+		repo:            repo,
+		events:          events,
+		processedEvents: processedEvents,
+		done:            done,
+		wg:              wg,
 	}
 }
 
@@ -71,6 +75,22 @@ func (c *consumer) Start() {
 				case <-c.done:
 					fmt.Println("NewDbConsumer case c.done.")
 					return
+				case e := <-c.processedEvents:
+					if e.Result == model.Sent {
+						err := c.repo.Remove([]uint64{e.EventID})
+						if err != nil {
+							// Что делаем если не удалось удалить запись о событии из базы?
+							log.Printf("Repo Remove error: %v", err)
+						}
+
+					} else {
+						err := c.repo.Unlock([]uint64{e.EventID})
+						if err != nil {
+							// Что делаем если не вышло вернуть записи статус "К обработке"?
+							log.Printf("Repo Unlock error: %v", err)
+						}
+					}
+
 				}
 			}
 		}()

@@ -18,10 +18,6 @@ func GetMyPoolRealisation(workersNum uint64, tasksBufferSize uint64) (*WorkerPoo
 	return NewWorkerPool(workersNum, tasksBufferSize)
 }
 
-func GetAiPoolRealisation(maxWorkers int, queueSize int) *Pool {
-	return New(maxWorkers, queueSize)
-}
-
 func TestBasicProcessing(t *testing.T) {
 	p, _ := GetMyPoolRealisation(3, 5)
 	// p := GetAiPoolRealisation(3, 5)
