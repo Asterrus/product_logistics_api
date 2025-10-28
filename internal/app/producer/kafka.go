@@ -61,7 +61,7 @@ func (p *producer) Start(ctx context.Context) {
 					log.Println("Producer stopped by context:", ctx.Err())
 					return
 				case event := <-p.events:
-					log.Printf("Producer. Event recieved %v\n", event)
+					log.Printf("Producer. Event received %v\n", event)
 
 					if err := p.sender.Send(&event); err != nil {
 						p.workerPool.Submit(func() {

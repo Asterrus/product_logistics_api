@@ -52,7 +52,7 @@ func (wp *WorkerPool) startWorkers(workersNum uint64, workersInitWG *sync.WaitGr
 					defer func() {
 						// защита: если task вызовет паник — всё равно считать задачу выполненной
 						if r := recover(); r != nil {
-							log.Printf("Поймали панику при выполнении таски!: %v", r)
+							log.Printf("Panic during task execution!: %v", r)
 							// можно логировать, если нужно
 						}
 					}()

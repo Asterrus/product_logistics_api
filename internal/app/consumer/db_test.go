@@ -127,7 +127,7 @@ func TestWriteInEventsChannel(t *testing.T) {
 			t.Errorf("Event ID. Expected: %d, Found: %d", new_event.ID, got.ID)
 		}
 	case <-time.After(100 * time.Millisecond):
-		t.Fatal("No events recieved during 100ms")
+		t.Fatal("No events received during 100ms")
 	}
 
 }
