@@ -1,6 +1,6 @@
 package workerpool
 
-import "fmt"
+import "log"
 
 type FakeWorkerPoolInterface interface {
 	Submit(func())
@@ -15,7 +15,7 @@ func NewFakeWorkerPool() FakeWorkerPoolInterface {
 }
 
 func (wp *FakeWorkerPool) Submit(task func()) {
-	fmt.Println("FakeWorkerPool Submit called")
+	log.Println("FakeWorkerPool Submit called")
 	wp.submitCallCount++
 	task()
 }

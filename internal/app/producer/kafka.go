@@ -2,7 +2,7 @@ package producer
 
 import (
 	"context"
-	"fmt"
+	"log"
 	"product_logistics_api/internal/app/sender"
 	"product_logistics_api/internal/model"
 	"sync"
@@ -50,7 +50,7 @@ func NewKafkaProducer(
 	}
 }
 func (p *producer) Start(ctx context.Context) {
-	fmt.Println("producer START")
+	log.Println("producer START")
 	for i := uint64(0); i < p.n; i++ {
 		p.wg.Add(1)
 		go func() {
@@ -58,10 +58,10 @@ func (p *producer) Start(ctx context.Context) {
 			for {
 				select {
 				case <-ctx.Done():
-					fmt.Println("Producer stopped by context:", ctx.Err())
+					log.Println("Producer stopped by context:", ctx.Err())
 					return
 				case event := <-p.events:
-					fmt.Printf("Producer. Event recieved %v\n", event)
+					log.Printf("Producer. Event recieved %v\n", event)
 
 					if err := p.sender.Send(&event); err != nil {
 						p.workerPool.Submit(func() {

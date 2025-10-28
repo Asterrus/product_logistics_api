@@ -2,7 +2,6 @@ package consumer
 
 import (
 	"context"
-	"fmt"
 	"log"
 	"product_logistics_api/internal/app/repo"
 	"product_logistics_api/internal/model"
@@ -49,7 +48,7 @@ func NewDbConsumer(
 }
 
 func (c *consumer) Start(ctx context.Context) {
-	fmt.Println("NewDbConsumer START")
+	log.Println("NewDbConsumer START")
 	for i := uint64(0); i < c.n; i++ {
 		c.wg.Add(1)
 
@@ -60,18 +59,18 @@ func (c *consumer) Start(ctx context.Context) {
 			for {
 				select {
 				case <-ctx.Done():
-					fmt.Println("Consumer stopped by context:", ctx.Err())
+					log.Println("Consumer stopped by context:", ctx.Err())
 					return
 				case <-ticker.C:
-					fmt.Println("NewDbConsumer case ticker.C")
+					log.Println("NewDbConsumer case ticker.C")
 					events, err := c.repo.Lock(c.batchSize)
-					fmt.Printf("NewDbConsumer events: %v, err: %v\n", events, err)
+					log.Printf("NewDbConsumer events: %v, err: %v\n", events, err)
 					if err != nil {
 						log.Printf("Repo Lock error: %v", err)
 						continue
 					}
 					for _, event := range events {
-						fmt.Printf("NewDbConsumer Send event %v to events channel\n", event)
+						log.Printf("NewDbConsumer Send event %v to events channel\n", event)
 						select {
 						case <-ctx.Done():
 							return
