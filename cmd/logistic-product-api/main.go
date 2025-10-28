@@ -15,7 +15,7 @@ func main() {
 	sigs := make(chan os.Signal, 1)
 	repo := repo.NewInMemoryProductEventRepo()
 	sender := sender.NewProductEventSender()
-	context, cancel := context.WithCancel(context.Background())
+	ctx, cancel := context.WithCancel(context.Background())
 	cfg := retranslator.Config{
 		EventsChannelSize:          512,
 		ProcessedEventsChannelSize: 512,
@@ -29,7 +29,7 @@ func main() {
 	}
 
 	retranslator := retranslator.NewRetranslator(cfg)
-	retranslator.Start(context)
+	retranslator.Start(ctx)
 
 	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
 
