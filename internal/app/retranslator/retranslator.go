@@ -3,6 +3,7 @@ package retranslator
 import (
 	"context"
 	"product_logistics_api/internal/app/consumer"
+	dbupdater "product_logistics_api/internal/app/db_updater"
 	"product_logistics_api/internal/app/producer"
 	"product_logistics_api/internal/app/workerpool"
 	"product_logistics_api/internal/model"
@@ -19,12 +20,15 @@ type Config struct {
 	EventsChannelSize          uint64
 	ProcessedEventsChannelSize uint64
 
-	ConsumerCount  uint64
-	ConsumeSize    uint64
-	ConsumeTimeout time.Duration
+	ConsumerCount              uint64
+	ConsumeSize                uint64
+	ConsumeTimeout             time.Duration
+	DbUpdatersTimeout          time.Duration
+	DbUpdatersTimeoutBatchSize uint64
 
 	ProducerCount        uint64
 	WorkerCount          int
+	DbUpdatersCount      uint64
 	WorkerPoolBufferSize uint64
 
 	Repo   ports.EventRepo
@@ -35,6 +39,7 @@ type retranslator struct {
 	events     chan model.ProductEvent
 	consumer   consumer.Consumer
 	producer   producer.Producer
+	dbUpdater  ports.DbUpdater
 	workerPool ports.TaskSubmitter
 }
 
@@ -55,22 +60,32 @@ func NewRetranslator(cfg Config) Retranslator {
 		events,
 		processedEventsChannel,
 		workerPool)
-
+	db_updater := dbupdater.NewDbUpdater(
+		cfg.DbUpdatersCount,
+		processedEventsChannel,
+		cfg.DbUpdatersTimeout,
+		cfg.DbUpdatersTimeoutBatchSize,
+		cfg.Repo,
+	)
 	return &retranslator{
 		events:     events,
 		consumer:   consumer,
 		producer:   producer,
 		workerPool: workerPool,
+		dbUpdater:  db_updater,
 	}
 }
 
 func (r *retranslator) Start(ctx context.Context) {
 	r.producer.Start(ctx)
 	r.consumer.Start(ctx)
+	r.dbUpdater.Start(ctx)
 }
 
 func (r *retranslator) Close() {
 	r.consumer.Close()
 	r.producer.Close()
+	r.dbUpdater.Close()
+
 	r.workerPool.StopWait()
 }

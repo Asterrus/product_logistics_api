@@ -24,6 +24,9 @@ func main() {
 		ProducerCount:              28,
 		WorkerCount:                2,
 		ConsumeTimeout:             1 * time.Second,
+		DbUpdatersTimeout:          1 * time.Second,
+		DbUpdatersTimeoutBatchSize: 5,
+		DbUpdatersCount:            2,
 		Repo:                       repo,
 		Sender:                     sender,
 	}

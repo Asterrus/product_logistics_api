@@ -1,6 +1,9 @@
 package ports
 
-import "product_logistics_api/internal/model"
+import (
+	"context"
+	"product_logistics_api/internal/model"
+)
 
 // Хранилище событий
 type EventRepo interface {
@@ -21,4 +24,10 @@ type TaskSubmitter interface {
 	Stop() error
 	StopWait() error
 	TrySubmit(func()) error
+}
+
+// Удаляет/Обновляет данные в хранилище событий после работы EventSender
+type DbUpdater interface {
+	Start(context.Context)
+	Close()
 }

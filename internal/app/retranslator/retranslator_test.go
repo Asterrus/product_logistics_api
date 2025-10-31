@@ -40,6 +40,9 @@ func TestStart(t *testing.T) {
 		ConsumeTimeout:             10 * time.Second,
 		ProducerCount:              2,
 		WorkerCount:                2,
+		DbUpdatersTimeout:          10 * time.Second,
+		DbUpdatersTimeoutBatchSize: 5,
+		DbUpdatersCount:            2,
 		Repo:                       repo,
 		Sender:                     sender,
 	}
@@ -63,6 +66,9 @@ func TestCorrectWork(t *testing.T) {
 		ConsumeTimeout:             time.Millisecond * 100,
 		ProducerCount:              1,
 		WorkerCount:                1,
+		DbUpdatersTimeout:          time.Millisecond * 100,
+		DbUpdatersTimeoutBatchSize: 1,
+		DbUpdatersCount:            2,
 		Repo:                       repo,
 		Sender:                     sender,
 	}

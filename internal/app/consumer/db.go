@@ -78,22 +78,6 @@ func (c *consumer) Start(ctx context.Context) {
 
 						}
 					}
-				case e := <-c.processedEvents:
-					if e.Result == model.Sent {
-
-						if err := c.repo.Remove([]uint64{e.EventID}); err != nil {
-							// Что делаем если не удалось удалить запись о событии из базы?
-							log.Printf("Repo Remove error: %v", err)
-						}
-
-					} else {
-
-						if err := c.repo.Unlock([]uint64{e.EventID}); err != nil {
-							// Что делаем если не вышло вернуть записи статус "К обработке"?
-							log.Printf("Repo Unlock error: %v", err)
-						}
-					}
-
 				}
 			}
 		}()

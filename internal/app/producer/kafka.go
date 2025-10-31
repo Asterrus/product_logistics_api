@@ -59,24 +59,28 @@ func (p *producer) Start(ctx context.Context) {
 					return
 				case event := <-p.events:
 					log.Printf("Producer. Event received %v\n", event)
-
+					var eventResult model.EventProcessedResult
 					if err := p.sender.Send(&event); err != nil {
-						p.workerPool.Submit(func() {
-							p.processedEvents <- model.ProductEventProcessed{
-								ID:      uuid.New(),
-								EventID: event.ID,
-								Result:  model.Returned,
-							}
-						})
+						log.Printf("Producer. Event send error %v\n", err)
+						eventResult = model.Returned
 					} else {
+						eventResult = model.Sent
+					}
+
+					select {
+					case <-ctx.Done():
+						log.Println("Producer stopped by context:", ctx.Err())
+						return
+					default:
 						p.workerPool.Submit(func() {
 							p.processedEvents <- model.ProductEventProcessed{
 								ID:      uuid.New(),
 								EventID: event.ID,
-								Result:  model.Sent,
+								Result:  eventResult,
 							}
 						})
 					}
+
 				}
 			}
 		}()

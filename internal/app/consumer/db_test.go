@@ -202,7 +202,7 @@ func TestReturneProcessedEventInEventsChannel(t *testing.T) {
 	t.Parallel()
 
 	repo := repo.NewInMemoryProductEventRepo()
-	repo.Add(*createEvent(uint64(1), model.Created, model.InProgress, createProduct(uint64(1))))
+	repo.Add(*createEvent(uint64(1), model.Created, model.Deferred, createProduct(uint64(1))))
 	consumersCount := uint64(1)
 	batchSize := uint64(1)
 	consumeTimeout := time.Millisecond * 50
