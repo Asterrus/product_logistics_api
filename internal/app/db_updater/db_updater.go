@@ -65,20 +65,25 @@ func (u *dbUpdater) Start(ctx context.Context) {
 					continue
 				}
 				log.Printf("dbUpdater. %v events to handle", len(events))
+				sentIDs := []uint64{}
+				returnedIDs := []uint64{}
 				for _, e := range events {
 					if e.Result == model.Sent {
-
-						if err := u.repo.Remove([]uint64{e.EventID}); err != nil {
-							// Что делаем если не удалось удалить запись о событии из базы?
-							log.Printf("Repo Remove error: %v", err)
-						}
-
+						sentIDs = append(sentIDs, e.EventID)
 					} else {
-
-						if err := u.repo.Unlock([]uint64{e.EventID}); err != nil {
-							// Что делаем если не вышло вернуть записи статус "К обработке"?
-							log.Printf("Repo Unlock error: %v", err)
-						}
+						returnedIDs = append(returnedIDs, e.EventID)
+					}
+				}
+				for _, e := range sentIDs {
+					if err := u.repo.Remove([]uint64{e}); err != nil {
+						// Что делаем если не удалось удалить запись о событии из базы?
+						log.Printf("Repo Remove error: %v", err)
+					}
+				}
+				for _, e := range returnedIDs {
+					if err := u.repo.Unlock([]uint64{e}); err != nil {
+						// Что делаем если не вышло вернуть записи статус "К обработке"?
+						log.Printf("Repo Unlock error: %v", err)
 					}
 				}
 

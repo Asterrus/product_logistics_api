@@ -219,7 +219,7 @@ func TestBatch(t *testing.T) {
 	processedEventsChannel <- model.ProductEventProcessed{
 		ID:      uuid.New(),
 		EventID: 2,
-		Result:  model.Sent,
+		Result:  model.Returned,
 	}
 
 	time.Sleep(time.Millisecond * 150)
@@ -227,7 +227,7 @@ func TestBatch(t *testing.T) {
 	cancel()
 	dbUpdater.Close()
 
-	expectedCount := 0
+	expectedCount := 1
 
 	if repo.Count() != uint64(expectedCount) {
 		t.Errorf("Expected: %v. Found: %v", expectedCount, repo.Count())
