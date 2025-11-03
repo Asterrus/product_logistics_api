@@ -57,18 +57,15 @@ func (p *producer) Start(ctx context.Context) {
 		p.wg.Add(1)
 		go func() {
 			defer p.wg.Done()
-			ticker := time.NewTicker(p.timeout)
-			defer ticker.Stop()
 			for {
-				select {
-				case <-ctx.Done():
+				if !p.eventQueue.WaitForEvent(ctx) {
 					log.Println("Producer stopped by context:", ctx.Err())
 					return
-				case <-ticker.C:
-					log.Printf("Producer. Ticker")
+				}
+				for {
 					event := p.eventQueue.PopEvent()
 					if event == nil {
-						continue
+						break
 					}
 					log.Printf("Producer. Event received %v\n", event)
 					var eventResult model.EventProcessedResult
@@ -78,7 +75,6 @@ func (p *producer) Start(ctx context.Context) {
 					} else {
 						eventResult = model.Sent
 					}
-
 					select {
 					case <-ctx.Done():
 						log.Println("Producer stopped by context:", ctx.Err())
@@ -92,7 +88,6 @@ func (p *producer) Start(ctx context.Context) {
 							}
 						})
 					}
-
 				}
 			}
 		}()

@@ -2,6 +2,7 @@ package queue
 
 import (
 	"container/heap"
+	"context"
 	"product_logistics_api/internal/model"
 	"sync"
 )
@@ -10,10 +11,12 @@ type EventQueue interface {
 	heap.Interface
 	PushEvent(*model.ProductEvent)
 	PopEvent() *model.ProductEvent
+	WaitForEvent(ctx context.Context) bool
 }
 type productEvents struct {
-	mu    *sync.Mutex
-	items []*model.ProductEvent
+	mu       *sync.Mutex
+	items    []*model.ProductEvent
+	notifyCh chan struct{}
 }
 
 // type productEvents []*model.ProductEvent
@@ -58,8 +61,13 @@ func (q *productEvents) PopEvent() *model.ProductEvent {
 
 func (q *productEvents) PushEvent(event *model.ProductEvent) {
 	q.mu.Lock()
-	defer q.mu.Unlock()
 	heap.Push(q, event)
+	q.mu.Unlock()
+	// Реактивное уведомление о новом событии
+	select {
+	case q.notifyCh <- struct{}{}:
+	default: // не блокируем, если уведомление уже есть
+	}
 }
 func (q productEvents) Peek() *model.ProductEvent {
 	q.mu.Lock()
@@ -75,11 +83,22 @@ func NewProductQueue(events []*model.ProductEvent) EventQueue {
 	}
 	mu := &sync.Mutex{}
 	q := &productEvents{
-		items: events,
-		mu:    mu,
+		items:    events,
+		mu:       mu,
+		notifyCh: make(chan struct{}, 1),
 	}
 	heap.Init(q)
 	return q
+}
+
+// Блокирующее ожидание появления события
+func (q *productEvents) WaitForEvent(ctx context.Context) bool {
+	select {
+	case <-ctx.Done():
+		return false
+	case <-q.notifyCh:
+		return true
+	}
 }
 
 var _ EventQueue = (*productEvents)(nil)
