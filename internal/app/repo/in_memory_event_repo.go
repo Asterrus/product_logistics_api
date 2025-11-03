@@ -7,6 +7,7 @@ import (
 	"product_logistics_api/internal/model"
 	"product_logistics_api/internal/ports"
 	"sync"
+	"time"
 )
 
 var (
@@ -14,9 +15,10 @@ var (
 )
 
 type InMemoryProductEventRepo struct {
-	events    map[uint64]*model.ProductEvent
-	mu        sync.Mutex
-	lockCalls uint64
+	events            map[uint64]*model.ProductEvent
+	mu                sync.Mutex
+	lockCalls         uint64
+	processingTimeout int64 // сек
 }
 
 type TestEventRepo interface {
@@ -31,7 +33,8 @@ type TestEventRepo interface {
 
 func NewInMemoryProductEventRepo() TestEventRepo {
 	return &InMemoryProductEventRepo{
-		events: map[uint64]*model.ProductEvent{},
+		events:            map[uint64]*model.ProductEvent{},
+		processingTimeout: 10, // default, можно передавать через конструктор
 	}
 }
 
@@ -44,11 +47,17 @@ func (r *InMemoryProductEventRepo) Lock(n uint64) ([]model.ProductEvent, error) 
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	res := []model.ProductEvent{}
-
 	found := 0
+	now := getUnixNow()
 	for _, e := range r.events {
 		if e.Status == model.Deferred {
 			e.Status = model.InProgress
+			e.ProcessingAt = now
+			res = append(res, *e)
+			found++
+		} else if e.Status == model.InProgress && (now-e.ProcessingAt) > r.processingTimeout {
+			// зависшее событие, повторно берём в обработку
+			e.ProcessingAt = now
 			res = append(res, *e)
 			found++
 		}
@@ -58,6 +67,11 @@ func (r *InMemoryProductEventRepo) Lock(n uint64) ([]model.ProductEvent, error) 
 	}
 	r.lockCalls++
 	return res, nil
+
+}
+
+func getUnixNow() int64 {
+	return time.Now().Unix()
 }
 func (r *InMemoryProductEventRepo) Unlock(eventIDs []uint64) error {
 	log.Printf("InMemoryProductEventRepo Unlock eventIDs: %v", eventIDs)

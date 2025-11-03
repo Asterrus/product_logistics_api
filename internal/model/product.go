@@ -30,10 +30,11 @@ const (
 )
 
 type ProductEvent struct {
-	ID     uint64
-	Type   EventType
-	Status EventStatus
-	Entity *Product
+	ID           uint64
+	Type         EventType
+	Status       EventStatus
+	Entity       *Product
+	ProcessingAt int64 // unix timestamp, время взятия в обработку
 }
 
 type ProductEventProcessed struct {

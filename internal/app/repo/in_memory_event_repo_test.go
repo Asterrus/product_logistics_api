@@ -3,6 +3,7 @@ package repo
 import (
 	"product_logistics_api/internal/model"
 	"testing"
+	"time"
 )
 
 func createProduct(ID uint64) *model.Product {
@@ -151,5 +152,38 @@ func TestDelete(t *testing.T) {
 	if int(repo.Count()) != expectedCount {
 		t.Errorf("Events count. Expected: %d, Found: %d", expectedCount, repo.Count())
 
+	}
+}
+
+func TestLock_ReacquireStuckInProgress(t *testing.T) {
+	repo := &InMemoryProductEventRepo{
+		events:            map[uint64]*model.ProductEvent{},
+		processingTimeout: 1, // 1 секунда для теста
+	}
+
+	// Добавляем событие со статусом InProgress, которое "зависло"
+	event := &model.ProductEvent{
+		ID:           42,
+		Type:         model.Created,
+		Status:       model.InProgress,
+		ProcessingAt: time.Now().Unix() - 2, // прошло больше таймаута
+	}
+	repo.Add(*event)
+
+	locked, err := repo.Lock(1)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(locked) != 1 {
+		t.Fatalf("expected 1 event, got %d", len(locked))
+	}
+	if locked[0].ID != event.ID {
+		t.Errorf("expected event ID %d, got %d", event.ID, locked[0].ID)
+	}
+	if locked[0].ProcessingAt <= event.ProcessingAt {
+		t.Errorf("expected updated ProcessingAt, got %d", locked[0].ProcessingAt)
+	}
+	if locked[0].Status != model.InProgress {
+		t.Errorf("expected status InProgress, got %v", locked[0].Status)
 	}
 }
