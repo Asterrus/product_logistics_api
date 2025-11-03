@@ -33,11 +33,11 @@ func TestStart(t *testing.T) {
 	sender := sender.NewProductEventSender()
 
 	cfg := Config{
-		EventsChannelSize:          512,
 		ProcessedEventsChannelSize: 512,
 		ConsumerCount:              2,
 		ConsumeSize:                10,
 		ConsumeTimeout:             10 * time.Second,
+		ProducerTimeout:            time.Millisecond * 100,
 		ProducerCount:              2,
 		WorkerCount:                2,
 		DbUpdatersTimeout:          10 * time.Second,
@@ -59,11 +59,11 @@ func TestCorrectWork(t *testing.T) {
 	sender := sender.NewProductEventSender()
 
 	cfg := Config{
-		EventsChannelSize:          1,
 		ProcessedEventsChannelSize: 1,
 		ConsumerCount:              1,
 		ConsumeSize:                1,
 		ConsumeTimeout:             time.Millisecond * 100,
+		ProducerTimeout:            time.Millisecond * 50,
 		ProducerCount:              1,
 		WorkerCount:                1,
 		DbUpdatersTimeout:          time.Millisecond * 100,

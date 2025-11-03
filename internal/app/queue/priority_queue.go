@@ -70,6 +70,9 @@ func (q productEvents) Peek() *model.ProductEvent {
 	return q.items[0]
 }
 func NewProductQueue(events []*model.ProductEvent) EventQueue {
+	if events == nil {
+		events = []*model.ProductEvent{}
+	}
 	mu := &sync.Mutex{}
 	q := &productEvents{
 		items: events,

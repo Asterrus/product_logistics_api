@@ -2,6 +2,7 @@ package consumer
 
 import (
 	"context"
+	"product_logistics_api/internal/app/queue"
 	"product_logistics_api/internal/app/repo"
 	"product_logistics_api/internal/model"
 	"testing"
@@ -36,11 +37,10 @@ func TestConsumerWork(t *testing.T) {
 	consumersCount := uint64(1)
 	batchSize := uint64(1)
 	consumeTimeout := time.Millisecond * 50
-	eventsChannelBuffer := uint64(1)
-	eventsChannel := make(chan model.ProductEvent, eventsChannelBuffer)
 	processedEventsChannelBuffer := uint64(1)
 	processedEventsChannel := make(chan model.ProductEventProcessed, processedEventsChannelBuffer)
-	consumer := NewDbConsumer(consumersCount, batchSize, consumeTimeout, repo, eventsChannel, processedEventsChannel)
+	queue := queue.NewProductQueue(nil)
+	consumer := NewDbConsumer(consumersCount, batchSize, consumeTimeout, repo, processedEventsChannel, queue)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	consumer.Start(ctx)
@@ -55,11 +55,10 @@ func TestOneConsumerLocksCount(t *testing.T) {
 	consumersCount := uint64(1)
 	batchSize := uint64(1)
 	consumeTimeout := time.Millisecond * 50
-	eventsChannelBuffer := uint64(1)
-	eventsChannel := make(chan model.ProductEvent, eventsChannelBuffer)
 	processedEventsChannelBuffer := uint64(1)
 	processedEventsChannel := make(chan model.ProductEventProcessed, processedEventsChannelBuffer)
-	consumer := NewDbConsumer(consumersCount, batchSize, consumeTimeout, repo, eventsChannel, processedEventsChannel)
+	queue := queue.NewProductQueue(nil)
+	consumer := NewDbConsumer(consumersCount, batchSize, consumeTimeout, repo, processedEventsChannel, queue)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	consumer.Start(ctx)
@@ -81,11 +80,10 @@ func TestMultipleConsumersLocksCount(t *testing.T) {
 	consumersCount := uint64(5)
 	batchSize := uint64(1)
 	consumeTimeout := time.Millisecond * 50
-	eventsChannelBuffer := uint64(1)
-	eventsChannel := make(chan model.ProductEvent, eventsChannelBuffer)
 	processedEventsChannelBuffer := uint64(1)
 	processedEventsChannel := make(chan model.ProductEventProcessed, processedEventsChannelBuffer)
-	consumer := NewDbConsumer(consumersCount, batchSize, consumeTimeout, repo, eventsChannel, processedEventsChannel)
+	queue := queue.NewProductQueue(nil)
+	consumer := NewDbConsumer(consumersCount, batchSize, consumeTimeout, repo, processedEventsChannel, queue)
 	ctx, cancel := context.WithCancel(context.Background())
 	consumer.Start(ctx)
 
@@ -100,17 +98,16 @@ func TestMultipleConsumersLocksCount(t *testing.T) {
 	}
 }
 
-func TestWriteInEventsChannel(t *testing.T) {
+func TestWriteInEventsQueue(t *testing.T) {
 	t.Parallel()
 	repo := repo.NewInMemoryProductEventRepo()
 	consumersCount := uint64(1)
 	batchSize := uint64(1)
 	consumeTimeout := time.Millisecond * 10
-	eventsChannelBuffer := uint64(1)
-	eventsChannel := make(chan model.ProductEvent, eventsChannelBuffer)
 	processedEventsChannelBuffer := uint64(1)
 	processedEventsChannel := make(chan model.ProductEventProcessed, processedEventsChannelBuffer)
-	consumer := NewDbConsumer(consumersCount, batchSize, consumeTimeout, repo, eventsChannel, processedEventsChannel)
+	queue := queue.NewProductQueue(nil)
+	consumer := NewDbConsumer(consumersCount, batchSize, consumeTimeout, repo, processedEventsChannel, queue)
 
 	prod := createProduct(1)
 	new_event := createEvent(1, model.Created, model.Deferred, prod)
@@ -121,15 +118,10 @@ func TestWriteInEventsChannel(t *testing.T) {
 
 	defer consumer.Close()
 	defer cancel()
-	select {
-	case got := <-eventsChannel:
-		if got.ID != new_event.ID {
-			t.Errorf("Event ID. Expected: %d, Found: %d", new_event.ID, got.ID)
-		}
-	case <-time.After(100 * time.Millisecond):
-		t.Fatal("No events received during 100ms")
+	time.Sleep(60 * time.Millisecond)
+	if queue.Len() != 1 {
+		t.Errorf("Expected item in queue")
 	}
-
 }
 
 func TestLocksStoppedAfterConsumerStopped(t *testing.T) {
@@ -139,11 +131,10 @@ func TestLocksStoppedAfterConsumerStopped(t *testing.T) {
 	consumersCount := uint64(1)
 	batchSize := uint64(1)
 	consumeTimeout := time.Millisecond * 50
-	eventsChannelBuffer := uint64(1)
-	eventsChannel := make(chan model.ProductEvent, eventsChannelBuffer)
 	processedEventsChannelBuffer := uint64(1)
 	processedEventsChannel := make(chan model.ProductEventProcessed, processedEventsChannelBuffer)
-	consumer := NewDbConsumer(consumersCount, batchSize, consumeTimeout, repo, eventsChannel, processedEventsChannel)
+	queue := queue.NewProductQueue(nil)
+	consumer := NewDbConsumer(consumersCount, batchSize, consumeTimeout, repo, processedEventsChannel, queue)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	consumer.Start(ctx)
@@ -170,35 +161,29 @@ func TestMultipleConsumersSendAllEvents(t *testing.T) {
 	consumersCount := uint64(5)
 	batchSize := uint64(1)
 	consumeTimeout := time.Millisecond * 50
-	eventsChannelBuffer := uint64(5)
-	eventsChannel := make(chan model.ProductEvent, eventsChannelBuffer)
 	processedEventsChannelBuffer := uint64(1)
 	processedEventsChannel := make(chan model.ProductEventProcessed, processedEventsChannelBuffer)
-	consumer := NewDbConsumer(consumersCount, batchSize, consumeTimeout, repo, eventsChannel, processedEventsChannel)
+	queue := queue.NewProductQueue(nil)
+	consumer := NewDbConsumer(consumersCount, batchSize, consumeTimeout, repo, processedEventsChannel, queue)
 	ctx, cancel := context.WithCancel(context.Background())
 	consumer.Start(ctx)
 
 	defer consumer.Close()
 	defer cancel()
 	received := map[uint64]bool{}
-	timeout := time.After(200 * time.Millisecond)
+	time.Sleep(60 * time.Millisecond)
 
-	for loop := true; loop; {
-		select {
-		case event := <-eventsChannel:
-			received[event.ID] = true
-			if len(received) == 5 {
-				loop = false
-			}
-		case <-timeout:
-			t.Fatalf("Events count. Expected: 5, Found: %d", len(received))
-
-		}
+	for i := 0; i < 5; i++ {
+		event := queue.PopEvent()
+		received[event.ID] = true
+	}
+	if len(received) != 5 {
+		t.Fatalf("Events count. Expected: 5, Found: %d", len(received))
 	}
 
 }
 
-func TestReturneProcessedEventInEventsChannel(t *testing.T) {
+func TestReturneProcessedEventInEventsQueue(t *testing.T) {
 	t.Parallel()
 
 	repo := repo.NewInMemoryProductEventRepo()
@@ -206,26 +191,24 @@ func TestReturneProcessedEventInEventsChannel(t *testing.T) {
 	consumersCount := uint64(1)
 	batchSize := uint64(1)
 	consumeTimeout := time.Millisecond * 50
-	eventsChannelBuffer := uint64(5)
-	eventsChannel := make(chan model.ProductEvent, eventsChannelBuffer)
 	processedEventsChannelBuffer := uint64(5)
 	processedEventsChannel := make(chan model.ProductEventProcessed, processedEventsChannelBuffer)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	processedEventsChannel <- model.ProductEventProcessed{ID: uuid.New(), EventID: uint64(1), Result: model.Returned}
-
-	consumer := NewDbConsumer(consumersCount, batchSize, consumeTimeout, repo, eventsChannel, processedEventsChannel)
+	queue := queue.NewProductQueue(nil)
+	consumer := NewDbConsumer(consumersCount, batchSize, consumeTimeout, repo, processedEventsChannel, queue)
 	consumer.Start(ctx)
 	defer consumer.Close()
 	defer cancel()
 	time.Sleep(time.Millisecond * 60)
 
-	if len(eventsChannel) != 1 {
+	if queue.Len() != 1 {
 		time.Sleep(time.Second * 1)
-		t.Fatalf("Events count. Expected: 1, Found: %d", len(eventsChannel))
+		t.Fatalf("Events count. Expected: 1, Found: %d", queue.Len())
 	}
 
-	event := <-eventsChannel
+	event := queue.PopEvent()
 	expectedStatus := model.InProgress
 	if event.Status != expectedStatus {
 		t.Fatalf("Events status. Expected: %v, Found: %v", expectedStatus, event.Status)

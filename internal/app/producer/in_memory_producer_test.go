@@ -2,6 +2,7 @@ package producer
 
 import (
 	"context"
+	"product_logistics_api/internal/app/queue"
 	"product_logistics_api/internal/app/sender"
 	"product_logistics_api/internal/app/workerpool"
 	"product_logistics_api/internal/model"
@@ -33,11 +34,12 @@ func TestStartClose(t *testing.T) {
 	t.Parallel()
 	producerWorkersCount := uint64(1)
 	sender := sender.NewProductEventSender()
-	eventsChannel := make(chan model.ProductEvent, 1)
 	workerPool := workerpool.NewFakeWorkerPool()
 	processedEventsChannelBuffer := uint64(1)
 	processedEventsChannel := make(chan model.ProductEventProcessed, processedEventsChannelBuffer)
-	producer := NewKafkaProducer(producerWorkersCount, sender, eventsChannel, processedEventsChannel, workerPool)
+	queue := queue.NewProductQueue(nil)
+	timeout := time.Millisecond * 50
+	producer := NewKafkaProducer(producerWorkersCount, sender, timeout, processedEventsChannel, workerPool, queue)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	producer.Start(ctx)
@@ -49,15 +51,16 @@ func TestCorrectWork(t *testing.T) {
 	t.Parallel()
 	producerWorkersCount := uint64(1)
 	sender := sender.NewProductEventSender()
-	eventsChannel := make(chan model.ProductEvent, 1)
 	workerPool := workerpool.NewFakeWorkerPool()
 	processedEventsChannelBuffer := uint64(1)
 	processedEventsChannel := make(chan model.ProductEventProcessed, processedEventsChannelBuffer)
-	producer := NewKafkaProducer(producerWorkersCount, sender, eventsChannel, processedEventsChannel, workerPool)
+	queue := queue.NewProductQueue(nil)
+	timeout := time.Millisecond * 50
+	producer := NewKafkaProducer(producerWorkersCount, sender, timeout, processedEventsChannel, workerPool, queue)
 
 	prod := createProduct(1)
 	new_event := createEvent(1, model.Created, model.Deferred, prod)
-	eventsChannel <- *new_event
+	queue.PushEvent(new_event)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	producer.Start(ctx)
@@ -67,9 +70,9 @@ func TestCorrectWork(t *testing.T) {
 
 	time.Sleep(time.Millisecond * 100)
 
-	if expectedEventsCount := 0; len(eventsChannel) != expectedEventsCount {
+	if expectedEventsCount := 0; queue.Len() != expectedEventsCount {
 		t.Errorf("Events count in events channel. Expected: %v, Found: %v",
-			expectedEventsCount, len(eventsChannel))
+			expectedEventsCount, queue.Len())
 	}
 
 	if expectedSendCount := uint64(1); sender.SendsCount() != expectedSendCount {

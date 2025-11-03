@@ -17,7 +17,6 @@ func main() {
 	sender := sender.NewProductEventSender()
 	ctx, cancel := context.WithCancel(context.Background())
 	cfg := retranslator.Config{
-		EventsChannelSize:          512,
 		ProcessedEventsChannelSize: 512,
 		ConsumerCount:              2,
 		ConsumeSize:                10,
@@ -25,6 +24,7 @@ func main() {
 		WorkerCount:                2,
 		ConsumeTimeout:             1 * time.Second,
 		DbUpdatersTimeout:          1 * time.Second,
+		ProducerTimeout:            1 * time.Second,
 		DbUpdatersTimeoutBatchSize: 5,
 		DbUpdatersCount:            2,
 		Repo:                       repo,

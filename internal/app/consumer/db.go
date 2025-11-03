@@ -3,6 +3,7 @@ package consumer
 import (
 	"context"
 	"log"
+	"product_logistics_api/internal/app/queue"
 	"product_logistics_api/internal/model"
 	"product_logistics_api/internal/ports"
 	"sync"
@@ -16,7 +17,6 @@ type Consumer interface {
 
 type consumer struct {
 	n               uint64
-	events          chan<- model.ProductEvent
 	processedEvents <-chan model.ProductEventProcessed
 
 	repo ports.EventRepo
@@ -24,7 +24,8 @@ type consumer struct {
 	batchSize uint64
 	timeout   time.Duration
 
-	wg *sync.WaitGroup
+	wg         *sync.WaitGroup
+	eventQueue queue.EventQueue
 }
 
 func NewDbConsumer(
@@ -32,8 +33,8 @@ func NewDbConsumer(
 	batchSize uint64,
 	consumeTimeout time.Duration,
 	repo ports.EventRepo,
-	events chan<- model.ProductEvent,
 	processedEvents <-chan model.ProductEventProcessed,
+	eventQueue queue.EventQueue,
 ) Consumer {
 	wg := &sync.WaitGroup{}
 	return &consumer{
@@ -41,9 +42,9 @@ func NewDbConsumer(
 		batchSize:       batchSize,
 		timeout:         consumeTimeout,
 		repo:            repo,
-		events:          events,
 		processedEvents: processedEvents,
 		wg:              wg,
+		eventQueue:      eventQueue,
 	}
 }
 
@@ -74,8 +75,8 @@ func (c *consumer) Start(ctx context.Context) {
 						select {
 						case <-ctx.Done():
 							return
-						case c.events <- event:
-
+						default:
+							c.eventQueue.PushEvent(&event)
 						}
 					}
 				}

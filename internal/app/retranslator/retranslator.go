@@ -5,6 +5,7 @@ import (
 	"product_logistics_api/internal/app/consumer"
 	dbupdater "product_logistics_api/internal/app/db_updater"
 	"product_logistics_api/internal/app/producer"
+	"product_logistics_api/internal/app/queue"
 	"product_logistics_api/internal/app/workerpool"
 	"product_logistics_api/internal/model"
 	"product_logistics_api/internal/ports"
@@ -17,7 +18,6 @@ type Retranslator interface {
 }
 
 type Config struct {
-	EventsChannelSize          uint64
 	ProcessedEventsChannelSize uint64
 
 	ConsumerCount              uint64
@@ -27,6 +27,7 @@ type Config struct {
 	DbUpdatersTimeoutBatchSize uint64
 
 	ProducerCount        uint64
+	ProducerTimeout      time.Duration
 	WorkerCount          int
 	DbUpdatersCount      uint64
 	WorkerPoolBufferSize uint64
@@ -44,22 +45,24 @@ type retranslator struct {
 }
 
 func NewRetranslator(cfg Config) Retranslator {
-	events := make(chan model.ProductEvent, cfg.EventsChannelSize)
 	workerPool, _ := workerpool.NewWorkerPool(uint64(cfg.WorkerCount), uint64(cfg.WorkerPoolBufferSize))
 	processedEventsChannel := make(chan model.ProductEventProcessed, cfg.ProcessedEventsChannelSize)
+	queue := queue.NewProductQueue(nil)
+
 	consumer := consumer.NewDbConsumer(
 		cfg.ConsumerCount,
 		cfg.ConsumeSize,
 		cfg.ConsumeTimeout,
 		cfg.Repo,
-		events,
-		processedEventsChannel)
+		processedEventsChannel,
+		queue)
 	producer := producer.NewKafkaProducer(
 		cfg.ProducerCount,
 		cfg.Sender,
-		events,
+		cfg.ProducerTimeout,
 		processedEventsChannel,
-		workerPool)
+		workerPool,
+		queue)
 	db_updater := dbupdater.NewDbUpdater(
 		cfg.DbUpdatersCount,
 		processedEventsChannel,
@@ -68,7 +71,6 @@ func NewRetranslator(cfg Config) Retranslator {
 		cfg.Repo,
 	)
 	return &retranslator{
-		events:     events,
 		consumer:   consumer,
 		producer:   producer,
 		workerPool: workerPool,

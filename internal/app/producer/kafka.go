@@ -3,9 +3,11 @@ package producer
 import (
 	"context"
 	"log"
+	"product_logistics_api/internal/app/queue"
 	"product_logistics_api/internal/model"
 	"product_logistics_api/internal/ports"
 	"sync"
+	"time"
 
 	"github.com/google/uuid"
 )
@@ -19,20 +21,22 @@ type producer struct {
 	n uint64
 
 	sender          ports.EventSender
-	events          <-chan model.ProductEvent
 	processedEvents chan<- model.ProductEventProcessed
 
 	workerPool ports.TaskSubmitter
 
-	wg *sync.WaitGroup
+	wg         *sync.WaitGroup
+	timeout    time.Duration
+	eventQueue queue.EventQueue
 }
 
 func NewKafkaProducer(
 	n uint64,
 	sender ports.EventSender,
-	events <-chan model.ProductEvent,
+	timeout time.Duration,
 	processedEvents chan<- model.ProductEventProcessed,
 	workerPool ports.TaskSubmitter,
+	eventQueue queue.EventQueue,
 ) Producer {
 
 	wg := &sync.WaitGroup{}
@@ -40,10 +44,11 @@ func NewKafkaProducer(
 	return &producer{
 		n:               n,
 		sender:          sender,
-		events:          events,
 		workerPool:      workerPool,
 		wg:              wg,
 		processedEvents: processedEvents,
+		eventQueue:      eventQueue,
+		timeout:         timeout,
 	}
 }
 func (p *producer) Start(ctx context.Context) {
@@ -52,15 +57,22 @@ func (p *producer) Start(ctx context.Context) {
 		p.wg.Add(1)
 		go func() {
 			defer p.wg.Done()
+			ticker := time.NewTicker(p.timeout)
+			defer ticker.Stop()
 			for {
 				select {
 				case <-ctx.Done():
 					log.Println("Producer stopped by context:", ctx.Err())
 					return
-				case event := <-p.events:
+				case <-ticker.C:
+					log.Printf("Producer. Ticker")
+					event := p.eventQueue.PopEvent()
+					if event == nil {
+						continue
+					}
 					log.Printf("Producer. Event received %v\n", event)
 					var eventResult model.EventProcessedResult
-					if err := p.sender.Send(&event); err != nil {
+					if err := p.sender.Send(event); err != nil {
 						log.Printf("Producer. Event send error %v\n", err)
 						eventResult = model.Returned
 					} else {
